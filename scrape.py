@@ -5,14 +5,8 @@ from bs4 import BeautifulSoup
 from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
 
-
-proxies = {
-    "http": "http://173.244.200.156/"
-}
-
 def extract_tags(url):
     path = PurePosixPath(unquote(urlparse(url).path)).parts
-    # Bad?
     ls = list(path)
     # Return rest of the path except the BASE_LINK and PDF name
     pdf = ls.pop()
@@ -70,7 +64,6 @@ def extract_pdfs(ROOT_LINK):
     print(count)
     return data
 final_data = extract_pdfs(ROOT_DIPLOMA_LINK)
-j = json.dumps(final_data)
 with open("data_diploma.json", "w") as f:
     json.dump(final_data, f)
 
