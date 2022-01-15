@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup, Comment
 from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
 
-
 headers = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:55.0) Gecko/20100101 Firefox/55.0',
 }
@@ -14,10 +13,11 @@ ROOT_URL = 'https://www.deshbandhucollege.ac.in/library-old-question-papers.php'
 def extract_tags(url):
     path = PurePosixPath(unquote(urlparse(url).path)).parts
     ls = list(path)
-    pdf = ls.pop()
-    ls.append(pdf[0:-4])
-    ls.append("ALL PAPERS")
-    return ls[-2:]
+    ls[-1] = ls[-1][0:-4]
+    # Add year
+    ls.append(ls[-1][-4:])
+    ls[-2] = ls[-2] + " (all subject papers)"
+    return ls[2:]
 
 def extract_pdfs(ROOT_LINK):
     data = []
@@ -43,18 +43,17 @@ def extract_pdfs(ROOT_LINK):
         for sub_link in links:
             path = urljoin(l, sub_link['href'])
             if sub_link['href'].endswith('pdf') or sub_link['href'].endswith('PDF'):
-                print(f'Found PDF: {path}')
                 tags = extract_tags(path)
                 data.append({
-                    "Paper": tags[-2],
-                    "Type": tags[-1],
-                    "Link": path,
-
+                    "graduation": "UNDERGRADUATE",
+                    "type": tags[-3].lower(),
+                    "year and semester": tags[-1],
+                    "paper": tags[-2].lower(),
+                    "link": path,
                 })
             else:
-                print(path)
                 ls.append(path)
     return data 
 final_data = extract_pdfs(ROOT_URL)
-with open("data_desh.json", "w") as f:
+with open("final_data_desh.json", "w") as f:
     json.dump(final_data, f)

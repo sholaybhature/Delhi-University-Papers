@@ -5,39 +5,27 @@ from bs4 import BeautifulSoup
 from urllib.parse import unquote, urlparse
 from pathlib import PurePosixPath
 
+ROOT_UG_LINK = 'http://web.du.ac.in/PreviousQuestionPapers/UNDER%20GRADUATE/'
+ROOT_PG_LINK = 'http://web.du.ac.in/PreviousQuestionPapers/POST%20GRADUATE/'
+ROOT_DIPLOMA_LINK  = 'http://web.du.ac.in/PreviousQuestionPapers/CERTFICATE-DIPLOMA/'
+
 def extract_tags(url):
     path = PurePosixPath(unquote(urlparse(url).path)).parts
     ls = list(path)
     # Return rest of the path except the BASE_LINK and PDF name
-    pdf = ls.pop()
-    #  if len(ls) == 
-    
-    ls.append(pdf[0:-4])
-
+    ls[-1] = ls[-1][0:-4]
+    year_sem = ""
+    for i in ls[2:-1]:
+        if i.startswith(("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "2")):
+            year_sem += i + " "
+    ls.append(year_sem) 
     return ls[2:]
 
-ROOT_UG_LINK = 'http://web.du.ac.in/PreviousQuestionPapers/UNDER%20GRADUATE/'
-ROOT_PG_LINK = 'http://web.du.ac.in/PreviousQuestionPapers/POST%20GRADUATE/'
-ROOT_DIPLOMA_LINK  = 'http://web.du.ac.in/PreviousQuestionPapers/CERTFICATE-DIPLOMA/'
-def extract_graduation(root_link):
-    r = requests.get(root_link)
-    soup = BeautifulSoup(r.text, 'lxml')
-    table = soup.find('table')
-    # Ignore the table headers, and other links
-    links = table.findAll('a')[5:]
-    return links
-
 def extract_pdfs(ROOT_LINK):
-    #  r = requests.get(ROOT_LINK)
-    #  soup = BeautifulSoup(r.text, 'lxml')
-    #  table = soup.find('table')
-    #  links = table.findAll('a')[5:]
-    #  print(links)
+    print(f"Extracting PDFs from {ROOT_LINK}")
     data = []
     ls = [ROOT_LINK]
-    count = 0
     while len(ls) != 0:
-        count += 1
         l = ls.pop()
         print(f"Current link: {l}")
         r = requests.get(l)
@@ -51,19 +39,24 @@ def extract_pdfs(ROOT_LINK):
             if sub_link['href'].endswith('pdf') or sub_link['href'].endswith('PDF'):
                 tags = extract_tags(path)
                 data.append({
-                    "Graduation": tags[0],
-                    "Type": tags[1],
-                    "Year and Semester": tags[2:-1],
-                    "Paper": tags[-1],
-                    "Link": path,
+                    "graduation": tags[0],
+                    "type": tags[1].lower(),
+                    "year and semester": tags[-1],
+                    "paper": tags[-2].lower(),
+                    "link": path,
                 })
-                print(f"Found a PDF: {tags[-1]}")
             else:
                 if not sub_link['href'].endswith('db'):
                     ls.append(path)
-    print(count)
     return data
-final_data = extract_pdfs(ROOT_DIPLOMA_LINK)
-with open("data_diploma.json", "w") as f:
-    json.dump(final_data, f)
+
+def extract_data (links, filenames):
+    for i in range(0, len(links)):
+        final_data = extract_pdfs(links[i])
+        with open(f"final_data_{filenames[i]}.json", "w") as f:
+            json.dump(final_data, f)
+
+links = [ROOT_DIPLOMA_LINK, ROOT_PG_LINK, ROOT_UG_LINK]
+filenames = ["diploma", "pg", "ug"]
+extract_data(links, filenames)
 
